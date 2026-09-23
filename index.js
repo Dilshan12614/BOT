@@ -20,16 +20,30 @@ const { File } = require('megajs')
 
 const ownerNumber = ['94740534738']
 
-//===================SESSION-AUTH============================
+//===================SESSION-AUTH (TRY-CATCH SAFE)============================
 if (!fs.existsSync(__dirname + '/auth_info_baileys/creds.json')) {
-if(!config.SESSION_ID) return console.log('Please add your session to SESSION_ID env !!')
-const sessdata = config.SESSION_ID
-const filer = File.fromURL(`https://mega.nz{sessdata}`)
-filer.download((err, data) => {
-if(err) throw err
-fs.writeFile(__dirname + '/auth_info_baileys/creds.json', data, () => {
-console.log("Session downloaded ✅")
-})})}
+    if(!config.SESSION_ID) {
+        console.log('Please add your session to SESSION_ID env !!')
+    } else {
+        try {
+            const sessdata = config.SESSION_ID;
+            // ලින්ක් එකක්ද නැත්නම් ID එකක්ද කියා බලා නිවැරදි Mega URL එක සෑදීම
+            const megaUrl = sessdata.startsWith('https://') ? sessdata : `https://mega.nz{sessdata}`;
+            
+            const filer = File.fromURL(megaUrl);
+            filer.download((err, data) => {
+                if(err) {
+                    console.log("❌ Session download error (Proceeding anyway):", err.message);
+                } else {
+                    fs.writeFileSync(__dirname + '/auth_info_baileys/creds.json', data);
+                    console.log("Session downloaded ✅");
+                }
+            });
+        } catch (e) {
+            console.log("⚠️ Mega Session ID Error එකක් මඟ හැර බොට් ඉදිරියට ධාවනය වේ:", e.message);
+        }
+    }
+}
 
 const express = require("express");
 const app = express();
@@ -106,7 +120,7 @@ async function connectToWA() {
     conn.ev.on('creds.update', saveCreds)
 
     conn.ev.on('messages.upsert', async(mek) => {
-        mek = mek.messages[0]
+        mek = mek.messages
         if (!mek.message) return	
         mek.message = (getContentType(mek.message) === 'ephemeralMessage') ? mek.message.ephemeralMessage.message : mek.message
         
@@ -136,9 +150,9 @@ async function connectToWA() {
         const args = body.trim().split(/ +/).slice(1)
         const q = args.join(' ')
         const isGroup = from.endsWith('@g.us')
-        const sender = mek.key.fromMe ? (conn.user.id.split(':')[0]+'@s.whatsapp.net' || conn.user.id) : (mek.key.participant || mek.key.remoteJid)
-        const senderNumber = sender.split('@')[0]
-        const botNumber = conn.user.id.split(':')[0]
+        const sender = mek.key.fromMe ? (conn.user.id.split(':')+'@s.whatsapp.net' || conn.user.id) : (mek.key.participant || mek.key.remoteJid)
+        const senderNumber = sender.split('@')
+        const botNumber = conn.user.id.split(':')
         const pushname = mek.pushName || 'Sin Nombre'
         const isMe = botNumber.includes(senderNumber)
         const isOwner = ownerNumber.includes(senderNumber) || isMe
@@ -159,19 +173,19 @@ async function connectToWA() {
             let mime = '';
             let res = await axios.head(url)
             mime = res.headers['content-type']
-            if (mime.split("/")[1] === "gif") {
+            if (mime.split("/") === "gif") {
                 return conn.sendMessage(jid, { video: await getBuffer(url), caption: caption, gifPlayback: true, ...options }, { quoted: quoted, ...options })
             }
             if (mime === "application/pdf") {
                 return conn.sendMessage(jid, { document: await getBuffer(url), mimetype: 'application/pdf', caption: caption, ...options }, { quoted: quoted, ...options })
             }
-            if (mime.split("/")[0] === "image") {
+            if (mime.split("/") === "image") {
                 return conn.sendMessage(jid, { image: await getBuffer(url), caption: caption, ...options }, { quoted: quoted, ...options })
             }
-            if (mime.split("/")[0] === "video") {
+            if (mime.split("/") === "video") {
                 return conn.sendMessage(jid, { video: await getBuffer(url), caption: caption, mimetype: 'video/mp4', ...options }, { quoted: quoted, ...options })
             }
-            if (mime.split("/")[0] === "audio") {
+            if (mime.split("/") === "audio") {
                 return conn.sendMessage(jid, { audio: await getBuffer(url), caption: caption, mimetype: 'audio/mpeg', ...options }, { quoted: quoted, ...options })
             }
         }
@@ -181,13 +195,12 @@ async function connectToWA() {
             m.react(`💀`)
         }      
 
-        // BOT MODE FILTERS
         if(!isOwner && liveConfig.MODE === "private") return
         if(!isOwner && isGroup && liveConfig.MODE === "inbox") return
         if(!isOwner && !isGroup  && liveConfig.MODE === "groups") return
 
         const events = require('./command')
-        const cmdName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : false;
+        const cmdName = isCmd ? body.slice(prefix.length).trim().split(" ").toLowerCase() : false;
         if (isCmd) {
             const cmd = events.commands.find((cmd) => cmd.pattern === (cmdName)) || events.commands.find((cmd) => cmd.alias && cmd.alias.includes(cmdName))
             if (cmd) {
@@ -195,24 +208,21 @@ async function connectToWA() {
                 try {
                     cmd.function(conn, mek, m,{from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply});
                 } catch (e) {
-                    console.error("[PLUGIN ERROR] " + e);
-                }
-            }
-        }
-    })
+        console.error("[PLUGIN ERROR] " + e);
 }
-
+}
+}
+})
+}
 async function main() {
-    try {
-        const connectDB = require(`./lib/mongodb`);
-        await connectDB();
-        
-        setTimeout(async () => {
-            await connectToWA();
-        }, 2000);
-    } catch (e) {
-        console.error("Main initialization failed:", e);
-    }
+try {
+const connectDB = require(./lib/mongodb);
+await connectDB();
+setTimeout(async () => {
+await connectToWA();
+}, 2000);
+} catch (e) {
+console.error("Main initialization failed:", e);
 }
-
+}
 main();
