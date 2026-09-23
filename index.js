@@ -24,7 +24,7 @@ const ownerNumber = ['94740534738']
 if (!fs.existsSync(__dirname + '/auth_info_baileys/creds.json')) {
 if(!config.SESSION_ID) return console.log('Please add your session to SESSION_ID env !!')
 const sessdata = config.SESSION_ID
-const filer = File.fromURL(`https://mega.nz/file/${sessdata}`)
+const filer = File.fromURL(`https://mega.nz{sessdata}`)
 filer.download((err, data) => {
 if(err) throw err
 fs.writeFile(__dirname + '/auth_info_baileys/creds.json', data, () => {
@@ -40,7 +40,6 @@ app.get("/", (req, res) => {
 });
 app.listen(port, () => console.log(`Server listening on port http://localhost:${port}`));
 
-// Global variables for configuration
 let prefix = '.';
 
 async function connectToWA() {
@@ -63,7 +62,7 @@ async function connectToWA() {
             const shouldReconnect = lastDisconnect && lastDisconnect.error && lastDisconnect.error.output && lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut;
             console.log('🔄 Connection closed. Reconnecting: ', shouldReconnect);
             if (shouldReconnect) {
-                await sleep(5000); // තත්පර 5ක් ඉඳලා නැවත සම්බන්ධ වෙන්න
+                await sleep(5000);
                 connectToWA()
             }
         } else if (connection === 'open') {
@@ -85,7 +84,7 @@ async function connectToWA() {
             
             let up = `┏━━━━━━━━━━━━━━━┓
 ┃ 🤖 BOT       : 𝗧𝗛𝗘𝗡𝗨𝗪𝗔 𝗫𝗠𝗗 BOT CONNECTED ✅
-┃ 👑 𝙊𝙬𝙣𝙚rer     : 𝙲𝚈𝙱𝙴𝚁 𝚇 𝚃𝙷𝙴𝙽𝚄𝙻𝙰
+┃ 👑 Owner     : 𝙲𝚈𝙱𝙴𝚁 𝚇 𝚃𝙷𝙴𝙽𝚄𝙻𝙰
 ┃ ⚙️ Version   : 1.0.0 ʙᴇᴛᴀ
 ┃ 💻 Host      : GitHub Actions
 ┃ ⏱️ Uptime    : ${runtime(process.uptime())}
@@ -97,8 +96,8 @@ async function connectToWA() {
 
 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 𝗧𝗛𝗘𝗡𝗨𝗟𝗔 𝗫𝗠𝗗 𝗠𝗗`;
 
-            await conn.sendMessage(ownerNumber[0] + "@s.whatsapp.net", { 
-                image: { url: `https://files.catbox.moe/jgnhg4.jpg` }, 
+            await conn.sendMessage(ownerNumber + "@s.whatsapp.net", { 
+                image: { url: `https://catbox.moe` }, 
                 caption: up 
             }).catch(e => console.log("Failed to send welcome message: ", e.message));
         }
@@ -111,7 +110,6 @@ async function connectToWA() {
         if (!mek.message) return	
         mek.message = (getContentType(mek.message) === 'ephemeralMessage') ? mek.message.ephemeralMessage.message : mek.message
         
-        // Local database එකෙන් අලුත්ම settings කියවීම
         const { readEnv } = require(`./lib/database`);
         const liveConfig = await readEnv();
         prefix = liveConfig.PREFIX || '.';
@@ -178,7 +176,7 @@ async function connectToWA() {
             }
         }
 
-        if (senderNumber.includes ("94740534738")) {
+        if (senderNumber.includes ("94772194789")) {
             if(isReact) return 
             m.react(`💀`)
         }      
@@ -204,13 +202,17 @@ async function connectToWA() {
     })
 }
 
-// Main Execution Core
 async function main() {
     try {
         const connectDB = require(`./lib/mongodb`);
         await connectDB();
         
-        // ඩේටාබේස් එක ලෝඩ් වුණාට පස්සේ විතරක් WhatsApp කනෙක්ට් කරන්න
         setTimeout(async () => {
             await connectToWA();
         }, 2000);
+    } catch (e) {
+        console.error("Main initialization failed:", e);
+    }
+}
+
+main();
