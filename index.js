@@ -216,7 +216,7 @@ async function connectToWA() {
 }
 async function main() {
 try {
-const connectDB = require(./lib/mongodb);
+const connectDB = require("./lib/mongodb");
 await connectDB();
 setTimeout(async () => {
 await connectToWA();
