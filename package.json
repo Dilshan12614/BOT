@@ -9,8 +9,8 @@
     "restart": "pm2 restart dilshan-md"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.6.0",
-    "@adiwajshing/keyed-db": "^0.2.4",
+    "@whiskeysockets/baileys": "6.6.0",
+    "@adiwajshing/keyed-db": "0.2.4",
     "pino": "^7.0.5",
     "pm2": "^5.2.0",
     "util": "^0.12.4",
